@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Flip 7 Odds Tracker</title>
+<style>
+  :root {
+    --bg: #f7f7fb;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --good: #166534;
+    --warn: #92400e;
+    --bad: #991b1b;
+    --accent: #2563eb;
+    --soft-good: #dcfce7;
+    --soft-warn: #fef3c7;
+    --soft-bad: #fee2e2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+
+  header {
+    padding: 20px;
+    background: #111827;
+    color: white;
+  }
+
+  header h1 { margin: 0 0 6px; font-size: 1.55rem; }
+  header p { margin: 0; color: #d1d5db; }
+
+  main {
+    max-width: 1250px;
+    margin: 0 auto;
+    padding: 18px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  @media (min-width: 900px) {
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    .grid.players { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+
+  .busted-card {
+    border-color: #fecaca;
+    background: #fff7f7;
+  }
+
+  h2, h3 { margin-top: 0; }
+
+  button {
+    border: 1px solid var(--line);
+    background: white;
+    color: var(--ink);
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 650;
+  }
+
+  button:hover { border-color: var(--accent); }
+
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  button.danger { color: var(--bad); }
+  button.warn { color: var(--warn); }
+
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 8px 0 12px;
+  }
+
+  .num-btn { min-width: 42px; }
+
+  .small { font-size: .9rem; color: var(--muted); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+  }
+
+  @media (min-width: 650px) {
+    .stats { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .stat {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 9px;
+    background: #fafafa;
+  }
+
+  .stat .label {
+    font-size: .78rem;
+    color: var(--muted);
+  }
+
+  .stat .value {
+    font-size: 1.05rem;
+    font-weight: 850;
+  }
+
+  .remaining-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin-top: 12px;
+  }
+
+  @media (min-width: 700px) {
+    .remaining-grid { grid-template-columns: repeat(7, 1fr); }
+  }
+
+  .remain-cell {
+    border: 1px solid var(--line);
+    background: #fafafa;
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+  }
+
+  .remain-cell.empty {
+    opacity: .45;
+    text-decoration: line-through;
+  }
+
+  .remain-label {
+    font-size: .78rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .remain-count {
+    font-size: 1.12rem;
+    font-weight: 900;
+    margin-top: 2px;
+  }
+
+  .cards-list {
+    min-height: 34px;
+    padding: 8px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    background: #fafafa;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    font-weight: 750;
+    font-size: .9rem;
+    cursor: pointer;
+  }
+
+  .status-pill, .win-pill {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 8px 5px 0 0;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: .86rem;
+  }
+
+  .status-ok, .win-good { background: var(--soft-good); color: var(--good); }
+  .status-bust, .win-bad { background: var(--soft-bad); color: var(--bad); }
+  .status-freeze, .win-warn { background: var(--soft-warn); color: var(--warn); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .92rem;
+  }
+
+  th, td {
+    border-bottom: 1px solid var(--line);
+    padding: 7px;
+    text-align: left;
+  }
+
+  th {
+    color: var(--muted);
+    font-size: .8rem;
+  }
+
+  .good { color: var(--good); }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
+
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px;
+    font: inherit;
+  }
+
+  .top-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .section-spacer { margin-top: 14px; }
+  .leader { font-weight: 900; }
+
+  .rank {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #eef2ff;
+    font-weight: 900;
+    margin-right: 6px;
+  }
+
+  button, .pill { min-height: 44px; touch-action: manipulation; }
+  button { font-size: 1rem; }
+  input[type="text"], input[type="number"] { font-size: 16px; min-height: 44px; }
+  .card { min-width: 0; overflow-x: auto; }
+  .stat .value { overflow-wrap: anywhere; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 649px) {
+    header { padding: 16px; }
+    main { padding: 10px; }
+    h2 { font-size: 1.2rem; }
+    .grid.two:first-of-type > .card:first-child { order: 2; }
+    .grid.two:first-of-type > .card:nth-child(2) { order: 1; }
+    #numberButtons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    #numberButtons button { min-height: 52px; }
+    #activePlayerButtons button { flex: 1 1 40%; }
+    .top-actions button { flex: 1 1 100%; }
+    th, td { padding: 7px 4px; overflow-wrap: anywhere; }
+    .pill { display: inline-flex; align-items: center; }
+  }
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Flip 7 Odds Tracker</h1>
+  <p>Tap your cards, track the shared deck, and check your odds. No installation needed.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Active Player Decision Bar</h2>
+    <div class="stats" id="activeDecisionBar"></div>
+  </section>
+
+  <section class="grid two section-spacer">
+    <div class="card">
+      <h2>Game Controls</h2>
+      <p class="small">
+        <strong>Next Round</strong> banks every live/frozen player's current round score and clears hands without restoring cards.
+        <strong>Reset Game</strong> starts over with a full deck.
+      </p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Cards Left</div>
+          <div class="value" id="cardsLeft">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Target Score</div>
+          <div class="value"><input type="number" id="targetScoreInput" value="200" min="1" onchange="setTargetScore(this.value)" /></div>
+        </div>
+        <div class="stat">
+          <div class="label">Current Leader</div>
+          <div class="value" id="currentLeader">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Active Player</div>
+          <div class="value" id="activePlayerName">—</div>
+        </div>
+      </div>
+
+      <h3 class="section-spacer">Player Count</h3>
+      <div class="button-row">
+        <button onclick="setPlayerCount(2)">2 Players</button>
+        <button onclick="setPlayerCount(3)">3 Players</button>
+        <button onclick="setPlayerCount(4)">4 Players</button>
+        <button onclick="setPlayerCount(5)">5 Players</button>
+        <button onclick="setPlayerCount(6)">6 Players</button>
+      </div>
+
+      <div class="top-actions">
+        <button class="warn" onclick="nextRound()">Next Round — Same Deck</button>
+        <button onclick="reshuffleDeckOnly()">Reshuffle Deck Only</button>
+        <button class="danger" onclick="resetGame()">Reset Game / Reshuffle</button>
+      </div>
+
+      <h3 class="section-spacer">Remaining Cards</h3>
+      <div class="remaining-grid" id="remainingGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Card Entry</h2>
+      <p class="small">Pick the active player, then tap the card drawn. Every tap removes that card from the shared deck.</p>
+
+      <label class="small">Active Player</label>
+      <div class="button-row" id="activePlayerButtons"></div>
+
+      <h3>Numbers</h3>
+      <div class="button-row" id="numberButtons"></div>
+
+      <h3>Actions</h3>
+      <div class="button-row">
+        <button onclick="addCard('action','Freeze')">Freeze</button>
+        <button onclick="addCard('action','Second Chance')">Second Chance</button>
+        <button onclick="addCard('action','Flip Three')">Flip Three</button>
+      </div>
+
+      <h3>Modifiers</h3>
+      <div class="button-row">
+        <button onclick="addCard('modifier','+2')">+2</button>
+        <button onclick="addCard('modifier','+4')">+4</button>
+        <button onclick="addCard('modifier','+6')">+6</button>
+        <button onclick="addCard('modifier','+8')">+8</button>
+        <button onclick="addCard('modifier','+10')">+10</button>
+        <button onclick="addCard('modifier','x2')">×2</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid two section-spacer">
+    <div class="card">
+      <h2>Leaderboard</h2>
+      <table id="leaderboardTable"></table>
+    </div>
+
+    <div class="card">
+      <h2>Shared Draw Odds</h2>
+      <p class="small">Number cards and modifier cards are grouped together here. These odds are the same for everyone.</p>
+      <table id="sharedOddsTable"></table>
+    </div>
+  </section>
+
+  <section class="card section-spacer">
+    <h2>Player Bust Chances</h2>
+    <p class="small">EV and recommendation are shown in the top bar for the active player. This table compares bust risk across all players.</p>
+    <table id="bustTable"></table>
+  </section>
+
+  <section class="grid players section-spacer" id="players"></section>
+
+  <section class="card section-spacer">
+    <h2>Remaining Deck Detail</h2>
+    <table id="deckTable"></table>
+  </section>
+</main>
+
+<script>
+const originalDeck = {};
+for (let i = 0; i <= 12; i++) originalDeck[String(i)] = i === 0 ? 1 : i;
+originalDeck["Freeze"] = 3;
+originalDeck["Second Chance"] = 3;
+originalDeck["Flip Three"] = 3;
+["+2","+4","+6","+8","+10","x2"].forEach(c => originalDeck[c] = 1);
+
+let targetScore = 200;
+let deck = structuredClone(originalDeck);
+let activePlayer = 0;
+
+function newPlayer(name, totalScore = 0) {
+  return {
+    name,
+    numbers: [],
+    actions: [],
+    modifiers: [],
+    frozen: false,
+    secondChance: false,
+    busted: false,
+    roundScore: 0,
+    totalScore
+  };
+}
+
+let players = [1,2,3,4].map(n => newPlayer(`Player ${n}`));
+
+function totalRemaining() {
+  return Object.values(deck).reduce((a,b) => a + b, 0);
+}
+
+function pct(count) {
+  const total = totalRemaining();
+  if (!total) return "0.0%";
+  return `${((count / total) * 100).toFixed(1)}%`;
+}
+
+function numberSum(p) {
+  return p.numbers.reduce((a,b) => a + b, 0);
+}
+
+function modifierSum(p) {
+  return p.modifiers.reduce((sum, m) => {
+    if (m === "x2") return sum;
+    return sum + Number(m.replace("+",""));
+  }, 0);
+}
+
+function hasX2(p) {
+  return p.modifiers.includes("x2");
+}
+
+function hasDuplicateNumber(p) {
+  return new Set(p.numbers).size !== p.numbers.length;
+}
+
+function isBusted(p) {
+  return hasDuplicateNumber(p) && !p.secondChance;
+}
+
+function score(p) {
+  if (isBusted(p)) return 0;
+  const mult = hasX2(p) ? 2 : 1;
+  const flip7 = new Set(p.numbers).size === 7 ? 15 : 0;
+  return (numberSum(p) * mult) + modifierSum(p) + flip7;
+}
+
+function bustCount(p) {
+  if (isBusted(p) || p.frozen) return 0;
+  const unique = [...new Set(p.numbers.map(String))];
+  return unique.reduce((sum, n) => sum + (deck[n] || 0), 0);
+}
+
+function expectedNextDrawValue(p) {
+  if (isBusted(p) || p.frozen) return score(p);
+  const total = totalRemaining();
+  if (!total) return 0;
+
+  let ev = 0;
+  const currentScore = score(p);
+
+  for (const [card, count] of Object.entries(deck)) {
+    if (count <= 0) continue;
+
+    const prob = count / total;
+    let nextScore = currentScore;
+
+    if (/^\d+$/.test(card)) {
+      const n = Number(card);
+      if (p.numbers.includes(n)) {
+        nextScore = p.secondChance ? currentScore : 0;
+      } else {
+        const fake = structuredClone(p);
+        fake.numbers.push(n);
+        nextScore = score(fake);
+      }
+    } else if (card.startsWith("+") || card === "x2") {
+      const fake = structuredClone(p);
+      fake.modifiers.push(card);
+      nextScore = score(fake);
+    } else {
+      nextScore = currentScore;
+    }
+
+    ev += prob * nextScore;
+  }
+  return ev;
+}
+
+function playerStatus(p) {
+  if (isBusted(p)) return ["BUSTED", "status-bust"];
+  if (p.frozen) return ["FROZEN", "status-freeze"];
+  if (new Set(p.numbers).size === 7) return ["FLIP 7!", "status-ok"];
+  return ["LIVE", "status-ok"];
+}
+
+function safeNumberDraws(p) {
+  if (isBusted(p) || p.frozen) return [];
+  const draws = [];
+  for (let i = 0; i <= 12; i++) {
+    const key = String(i);
+    if ((deck[key] || 0) <= 0) continue;
+    if (!p.numbers.includes(i)) {
+      const fake = structuredClone(p);
+      fake.numbers.push(i);
+      draws.push({ card: i, score: score(fake) });
+    }
+  }
+  return draws;
+}
+
+function bestSafeDraw(p) {
+  const draws = safeNumberDraws(p);
+  if (!draws.length) return "—";
+  const best = draws.sort((a,b) => b.score - a.score)[0];
+  return `${best.card} → ${best.score}`;
+}
+
+function worstSafeDraw(p) {
+  const draws = safeNumberDraws(p);
+  if (!draws.length) return "—";
+  const worst = draws.sort((a,b) => a.score - b.score)[0];
+  return `${worst.card} → ${worst.score}`;
+}
+
+function recommendation(p) {
+  const current = score(p);
+  const ev = expectedNextDrawValue(p);
+  const bust = bustCount(p) / Math.max(totalRemaining(), 1);
+
+  if (isBusted(p)) return ["Busted", "bad"];
+  if (p.frozen) return ["Frozen", "bad"];
+  if (p.totalScore + current >= targetScore) return ["Stop — Can Win", "good"];
+  if (ev > current + 2 && bust < 0.35) return ["Draw", "good"];
+  if (ev > current && bust < 0.45) return ["Lean Draw", "warn"];
+  return ["Stop", "bad"];
+}
+
+function neededToWin(p) {
+  return Math.max(0, targetScore - p.totalScore);
+}
+
+function projectedTotal(p) {
+  return p.totalScore + score(p);
+}
+
+function winStatus(p) {
+  const need = neededToWin(p);
+  const current = score(p);
+  if (projectedTotal(p) >= targetScore) return [`Can win now`, "win-good"];
+  if (current > 0) return [`Needs ${Math.max(0, need - current)} more this round`, "win-warn"];
+  return [`Needs ${need}`, "win-bad"];
+}
+
+function addCard(type, value) {
+  if (!players.length) {
+    alert("Add a player first.");
+    return;
+  }
+
+  if ((deck[String(value)] || 0) <= 0) {
+    alert(`${value === "x2" ? "×2" : value} is already gone from the deck.`);
+    return;
+  }
+
+  const p = players[activePlayer];
+
+  if (isBusted(p)) {
+    if (!confirm(`${p.name} is already busted. Add this card anyway?`)) return;
+  }
+
+  deck[String(value)]--;
+
+  if (type === "number") {
+    const n = Number(value);
+
+    if (p.numbers.includes(n) && p.secondChance) {
+      // Second Chance prevents the bust once.
+      // The duplicate card is still removed from the deck, but it does not stay in the player's hand.
+      // The Second Chance card is consumed and removed from the player's action area.
+      p.secondChance = false;
+      const idx = p.actions.indexOf("Second Chance");
+      if (idx >= 0) p.actions.splice(idx, 1);
+      alert(`${p.name}'s Second Chance was used. The duplicate ${n} was discarded.`);
+    } else {
+      p.numbers.push(n);
+    }
+  }
+  if (type === "modifier") p.modifiers.push(value);
+
+  if (type === "action") {
+    p.actions.push(value);
+    if (value === "Freeze") p.frozen = true;
+    if (value === "Second Chance") p.secondChance = true;
+  }
+
+  p.busted = isBusted(p);
+  p.roundScore = score(p);
+
+  if (totalRemaining() === 0) {
+    alert("The deck is empty. Use Reshuffle Deck Only to continue without restarting the game.");
+  }
+
+  render();
+}
+
+function undoPlayerCard(index, type, cardIndex) {
+  const p = players[index];
+  let val;
+
+  if (type === "numbers") val = p.numbers.splice(cardIndex,1)[0];
+  if (type === "modifiers") val = p.modifiers.splice(cardIndex,1)[0];
+  if (type === "actions") val = p.actions.splice(cardIndex,1)[0];
+
+  deck[String(val)] = (deck[String(val)] || 0) + 1;
+
+  p.frozen = p.actions.includes("Freeze");
+  p.secondChance = p.actions.includes("Second Chance");
+  p.busted = isBusted(p);
+  p.roundScore = score(p);
+  render();
+}
+
+function setActive(i) {
+  activePlayer = i;
+  render();
+}
+
+function renamePlayer(i, val) {
+  players[i].name = val || `Player ${i+1}`;
+  render();
+}
+
+function setTargetScore(val) {
+  targetScore = Number(val) || 200;
+  render();
+}
+
+function setPlayerCount(count) {
+  if (!confirm(`Set the game to ${count} players? This will reset player hands and scores, but will keep the current deck.`)) return;
+
+  const oldPlayers = players;
+  players = Array.from({ length: count }, (_, i) => {
+    if (oldPlayers[i]) {
+      return newPlayer(oldPlayers[i].name, oldPlayers[i].totalScore);
+    }
+    return newPlayer(`Player ${i + 1}`);
+  });
+
+  activePlayer = Math.min(activePlayer, players.length - 1);
+  render();
+}
+
+function renderActiveButtons() {
+  const box = document.getElementById("activePlayerButtons");
+  box.innerHTML = "";
+  players.forEach((p,i) => {
+    const btn = document.createElement("button");
+    btn.textContent = p.name;
+    btn.className = i === activePlayer ? "primary" : "";
+    btn.onclick = () => setActive(i);
+    box.appendChild(btn);
+  });
+}
+
+function renderNumberButtons() {
+  const box = document.getElementById("numberButtons");
+  box.innerHTML = "";
+  for (let i = 0; i <= 12; i++) {
+    const btn = document.createElement("button");
+    btn.className = "num-btn";
+    btn.textContent = i;
+    btn.onclick = () => addCard("number", String(i));
+    box.appendChild(btn);
+  }
+}
+
+function renderRemainingGrid() {
+  const ordered = [...Array.from({length: 13}, (_, i) => String(i)), "+2", "+4", "+6", "+8", "+10", "x2", "Freeze", "Second Chance", "Flip Three"];
+  document.getElementById("remainingGrid").innerHTML = ordered.map(k => {
+    const label = k === "x2" ? "×2" : k;
+    const count = deck[k] || 0;
+    return `
+      <div class="remain-cell ${count === 0 ? 'empty' : ''}">
+        <div class="remain-label">${label}</div>
+        <div class="remain-count">${count}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderActiveDecisionBar() {
+  const p = players[activePlayer];
+  if (!p) {
+    document.getElementById("activeDecisionBar").innerHTML = "";
+    return;
+  }
+
+  const [rec, recClass] = recommendation(p);
+  const [winText, winClass] = winStatus(p);
+  const [status, statusClass] = playerStatus(p);
+
+  const items = [
+    ["Active Player", p.name],
+    ["Status", `<span class="status-pill ${statusClass}" style="margin:0;">${status}</span>`],
+    ["Round Score", score(p)],
+    ["Projected Total", projectedTotal(p)],
+    ["Bust Chance", pct(bustCount(p))],
+    ["EV if Draw", expectedNextDrawValue(p).toFixed(1)],
+    ["Recommendation", `<span class="${recClass}">${rec}</span>`],
+    ["Win Status", `<span class="win-pill ${winClass}" style="margin:0;">${winText}</span>`],
+    ["Best Safe Draw", bestSafeDraw(p)],
+    ["Worst Safe Draw", worstSafeDraw(p)]
+  ];
+
+  document.getElementById("activeDecisionBar").innerHTML = items.map(([label, value]) => `
+    <div class="stat">
+      <div class="label">${label}</div>
+      <div class="value">${value}</div>
+    </div>
+  `).join("");
+}
+
+function renderGlobalStats() {
+  document.getElementById("cardsLeft").textContent = totalRemaining();
+  document.getElementById("targetScoreInput").value = targetScore;
+  document.getElementById("activePlayerName").textContent = players[activePlayer]?.name || "—";
+
+  const leader = [...players].sort((a,b) => projectedTotal(b) - projectedTotal(a))[0];
+  document.getElementById("currentLeader").textContent = leader ? `${leader.name} (${projectedTotal(leader)})` : "—";
+}
+
+function renderLeaderboard() {
+  const sorted = players
+    .map((p, idx) => ({...p, idx, projected: projectedTotal(p)}))
+    .sort((a,b) => b.projected - a.projected);
+
+  const rows = sorted.map((p, idx) => {
+    const player = players[p.idx];
+    const [status, statusClass] = playerStatus(player);
+    return `
+      <tr class="${idx === 0 ? 'leader' : ''}">
+        <td><span class="rank">${idx + 1}</span>${player.name}</td>
+        <td>${player.totalScore}</td>
+        <td>${score(player)}</td>
+        <td>${projectedTotal(player)}</td>
+        <td><span class="status-pill ${statusClass}" style="margin:0;">${status}</span></td>
+      </tr>
+    `;
+  }).join("");
+
+  document.getElementById("leaderboardTable").innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>Banked</th>
+      <th>This Round</th>
+      <th>Projected</th>
+      <th>Status</th>
+    </tr>
+    ${rows}
+  `;
+}
+
+function renderSharedOdds() {
+  const numberCount = Array.from({length: 13}, (_, i) => String(i)).reduce((s,c)=>s+(deck[c]||0),0);
+  const modifierCount = ["+2","+4","+6","+8","+10","x2"].reduce((s,c)=>s+(deck[c]||0),0);
+  const flatModifierCount = ["+2","+4","+6","+8","+10"].reduce((s,c)=>s+(deck[c]||0),0);
+  const actionCount = ["Freeze","Second Chance","Flip Three"].reduce((s,c)=>s+(deck[c]||0),0);
+
+  const rows = [
+    ["Any Number Card", numberCount],
+    ["Any Modifier", modifierCount],
+    ["Any Flat Modifier", flatModifierCount],
+    ["×2", deck["x2"] || 0],
+    ["Any Action", actionCount],
+    ["Freeze", deck["Freeze"] || 0],
+    ["Second Chance", deck["Second Chance"] || 0],
+    ["Flip Three", deck["Flip Three"] || 0],
+  ].map(([label, count]) => `
+    <tr>
+      <td>${label}</td>
+      <td>${count}</td>
+      <td>${pct(count)}</td>
+    </tr>
+  `).join("");
+
+  document.getElementById("sharedOddsTable").innerHTML = `
+    <tr><th>Card/Event</th><th>Remaining</th><th>Chance Next Draw</th></tr>
+    ${rows}
+  `;
+}
+
+function renderBustTable() {
+  const rows = players.map((p, i) => {
+    const [winText, winClass] = winStatus(p);
+    return `
+      <tr>
+        <td>${p.name}</td>
+        <td>${score(p)}</td>
+        <td>${projectedTotal(p)}</td>
+        <td>${pct(bustCount(p))}</td>
+        <td><span class="win-pill ${winClass}" style="margin:0;">${winText}</span></td>
+      </tr>
+    `;
+  }).join("");
+
+  document.getElementById("bustTable").innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>Round Score</th>
+      <th>Projected Total</th>
+      <th>Bust Chance</th>
+      <th>Race to ${targetScore}</th>
+    </tr>
+    ${rows}
+  `;
+}
+
+function renderPlayers() {
+  const box = document.getElementById("players");
+  box.innerHTML = "";
+
+  players.forEach((p, i) => {
+    p.busted = isBusted(p);
+    p.roundScore = score(p);
+
+    const [status, statusClass] = playerStatus(p);
+    const [rec, recClass] = recommendation(p);
+    const [winText, winClass] = winStatus(p);
+
+    const div = document.createElement("div");
+    div.className = `card ${isBusted(p) ? 'busted-card' : ''}`;
+
+    div.innerHTML = `
+      <input type="text" value="${p.name}" onchange="renamePlayer(${i}, this.value)" />
+      <div>
+        <span class="status-pill ${statusClass}">${status}</span>
+        <span class="win-pill ${winClass}">${winText}</span>
+      </div>
+
+      <div class="stats" style="margin-top:10px">
+        <div class="stat"><div class="label">Banked Score</div><div class="value">${p.totalScore}</div></div>
+        <div class="stat"><div class="label">Round Score</div><div class="value">${score(p)}</div></div>
+        <div class="stat"><div class="label">Projected Total</div><div class="value">${projectedTotal(p)}</div></div>
+        <div class="stat"><div class="label">Recommendation</div><div class="value ${recClass}">${rec}</div></div>
+      </div>
+
+      <div class="button-row">
+        <button onclick="bankPlayer(${i})">Bank This Player</button>
+        <button onclick="clearPlayerRound(${i})">Clear This Player</button>
+        <button onclick="setActive(${i})">Make Active</button>
+      </div>
+
+      <h3>Number Cards</h3>
+      <div class="cards-list">
+        ${p.numbers.map((n,idx)=>`<span class="pill" title="Click to undo" onclick="undoPlayerCard(${i}, 'numbers', ${idx})">${n} ×</span>`).join("") || '<span class="small">No number cards</span>'}
+      </div>
+
+      <h3>Actions</h3>
+      <div class="cards-list">
+        ${p.actions.map((a,idx)=>`<span class="pill" title="Click to undo" onclick="undoPlayerCard(${i}, 'actions', ${idx})">${a} ×</span>`).join("") || '<span class="small">No action cards</span>'}
+      </div>
+
+      <h3>Modifiers</h3>
+      <div class="cards-list">
+        ${p.modifiers.map((m,idx)=>`<span class="pill" title="Click to undo" onclick="undoPlayerCard(${i}, 'modifiers', ${idx})">${m === 'x2' ? '×2' : m} ×</span>`).join("") || '<span class="small">No modifiers</span>'}
+      </div>
+    `;
+
+    box.appendChild(div);
+  });
+}
+
+function renderDeckTable() {
+  const rows = Object.keys(deck).map(k => {
+    const label = k === "x2" ? "×2" : k;
+    return `<tr><td>${label}</td><td>${deck[k]}</td><td>${pct(deck[k])}</td></tr>`;
+  }).join("");
+
+  document.getElementById("deckTable").innerHTML = `
+    <tr><th>Card</th><th>Remaining</th><th>Chance Next Draw</th></tr>${rows}
+  `;
+}
+
+function bankPlayer(i) {
+  const p = players[i];
+  p.totalScore += score(p);
+  clearPlayerRound(i, false);
+}
+
+function clearPlayerRound(i, ask = true) {
+  if (ask && !confirm(`Clear ${players[i].name}'s round cards? This does NOT return cards to the deck.`)) return;
+
+  const name = players[i].name;
+  const total = players[i].totalScore;
+
+  players[i] = newPlayer(name, total);
+  render();
+}
+
+function nextRound() {
+  if (!confirm("Start next round with the same deck? This banks all live/frozen players and clears hands, but does NOT restore any cards.")) return;
+
+  players = players.map(p => newPlayer(p.name, p.totalScore + score(p)));
+  activePlayer = Math.min(activePlayer, players.length - 1);
+  render();
+}
+
+function reshuffleDeckOnly() {
+  if (!confirm("Reshuffle the deck only? This keeps all player names, scores, and current hands.")) return;
+  deck = structuredClone(originalDeck);
+
+  // Remove cards currently visible in player areas from the fresh deck.
+  // Busted/discarded duplicate cards are not visible anymore, so they return with the reshuffle.
+  players.forEach(p => {
+    p.numbers.forEach(n => deck[String(n)] = Math.max(0, (deck[String(n)] || 0) - 1));
+    p.actions.forEach(a => deck[String(a)] = Math.max(0, (deck[String(a)] || 0) - 1));
+    p.modifiers.forEach(m => deck[String(m)] = Math.max(0, (deck[String(m)] || 0) - 1));
+  });
+
+  render();
+}
+
+function resetGame() {
+  if (!confirm("Reset the whole game and reshuffle the deck?")) return;
+
+  const playerCount = Math.max(players.length, 1);
+  deck = structuredClone(originalDeck);
+  activePlayer = 0;
+  targetScore = Number(document.getElementById("targetScoreInput")?.value) || 200;
+  players = Array.from({length: playerCount}, (_, i) => newPlayer(`Player ${i + 1}`));
+  render();
+}
+
+function render() {
+  renderActiveDecisionBar();
+  renderGlobalStats();
+  renderActiveButtons();
+  renderRemainingGrid();
+  renderLeaderboard();
+  renderSharedOdds();
+  renderBustTable();
+  renderPlayers();
+  renderDeckTable();
+}
+
+renderNumberButtons();
+render();
+</script>
+</body>
+</html>
